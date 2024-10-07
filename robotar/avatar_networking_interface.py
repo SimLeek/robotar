@@ -7,7 +7,7 @@ Usage:
     ani --version
 
 Options:
-    <network                        The network config to use (adhoc, wifi, localhost)
+    <network>                        The network config to use (adhoc, wifi, localhost)
     <motors>                        The motor system to use (debug, rpi)
     --motor_pins=<mpins>            The motor pin specs. [default: 24,50;25,50;8,50;7,50;12,50;16,50;20,50;21,50]
     --speaker=<spk>                 The speaker to use. Use `python3 -m sounddevice` to query
@@ -27,7 +27,7 @@ from robotar.receive_speaker import play_speaker_async, fft_setter
 from robotar.transmit_camera import transmit_cam_async
 from robotar.transmit_mic import transmit_mic_async
 from typing import Dict, Any
-
+import threading
 
 async def udp_loop(ctx, local_ip, client_ip, args):
     motors = args['<motors>']
@@ -53,7 +53,7 @@ async def udp_loop(ctx, local_ip, client_ip, args):
 
     res = [int(r) for r in camera_resolution.split('x')]
 
-    radio_lock = asyncio.Lock()
+    radio_lock = threading.Lock()
 
     unicast_radio = ctx.socket(zmq.RADIO)
     unicast_radio.setsockopt(zmq.LINGER, 0)
@@ -63,15 +63,15 @@ async def udp_loop(ctx, local_ip, client_ip, args):
     unicast_dish.setsockopt(zmq.CONFLATE, 1)
     unicast_dish.rcvtimeo = 1000
 
-    unicast_dish.bind(f"udp://{local_ip}:9998")
+    unicast_dish.bind(f"udp://{local_ip}:9999")
     unicast_dish.join("direct")
-    unicast_radio.connect(f"udp://{client_ip}:9999")
+    unicast_radio.connect(f"udp://{client_ip}:9998")
 
     await asyncio.gather(
         transmit_cam_async(radio_lock, unicast_radio, device=camera, width=res[0], height=res[1]),
         transmit_mic_async(radio_lock, unicast_radio, device=mic, channels=mic_channels),
         play_speaker_async(device=speaker, channels=speaker_channels),
-        receive_objs({'AudioBuffer': fft_setter, 'TensorBuffer': motor_handling})(unicast_dish)
+        receive_objs({'AudioBuffer': fft_setter, 'TensorBuffer': motor_handling})(unicast_radio, unicast_dish)
     )
 
     unicast_radio.close()

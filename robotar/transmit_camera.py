@@ -20,7 +20,7 @@ async def transmit_cam_async(radio_lock, radio, device='/dev/video0', width=320,
         for i in range(0, len(direct_message), 4096):
             parts.append(direct_message[i:i + 4096])
 
-        await send_burst(radio_lock, radio, bytes([random.randint(0, 255)]), parts)
+        send_burst(radio_lock, radio, bytes([random.randint(0, 255)]), parts)
 
         print(f"Sent frame")
         await asyncio.sleep(0)

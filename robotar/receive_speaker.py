@@ -3,9 +3,11 @@ import asyncio
 import numpy as np
 import sounddevice as sd
 from scipy import fft
+import threading
 
 latest_fft = None
-fft_lock = asyncio.Lock()
+# does nothing because asyncio doesn't use threads, but it makes me feel better.
+fft_lock = threading.Lock()
 
 
 async def play_speaker_async(sample_rate=44800, channels=1, sends_per_sec=24, device=None):
@@ -17,7 +19,7 @@ async def play_speaker_async(sample_rate=44800, channels=1, sends_per_sec=24, de
 
         # Pull the latest FFT data and set output
         global latest_fft
-        async with fft_lock:
+        with fft_lock:
             if latest_fft is not None:
                 y = fft.irfft(latest_fft, axis=0)
 
@@ -34,5 +36,5 @@ async def play_speaker_async(sample_rate=44800, channels=1, sends_per_sec=24, de
 
 def fft_setter(audio_buffer):
     global latest_fft, fft_lock
-    async with fft_lock:
+    with fft_lock:
         latest_fft = audio_buffer.fft_data

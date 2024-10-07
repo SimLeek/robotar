@@ -12,6 +12,7 @@ async def transmit_mic_async(radio_lock, radio, sample_rate=44800, channels=1, s
     block_size = sample_rate // sends_per_sec
 
     def transmit_mic_callback(indata, frames, time, status):
+        print("transmit mic callback")
         nonlocal fft_size, radio, radio_lock
 
         x = fft.rfft(indata, n=block_size, axis=0)
@@ -24,6 +25,7 @@ async def transmit_mic_async(radio_lock, radio, sample_rate=44800, channels=1, s
         parts = []
         for i in range(0, len(direct_message), 4096):
             parts.append(direct_message[i:i + 4096])
+        print('transmit mic burst')
         send_burst(radio_lock, radio, bytes([random.randint(0, 255)]), parts)
         print(f"Sent fft")
 
